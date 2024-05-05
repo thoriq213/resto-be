@@ -20,20 +20,19 @@ router.get('/list', async(req, res) => {
 });
 
 router.post('/add', catagoryValidaton.add, async (req, res) => {
-    const errors = validationResult(req);
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+          status: false,
+          msg: errors.array(),
+          data: null
+      });
+  }
 
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ 
-            status: false,
-            msg: errors.array(),
-            data: null
-        });
-    }
-
-    const body = req.body;
-    const insert = await categoryModel.addCategory(body);
-
-    res.status(insert.code).json(insert.body);
+  const body = req.body;
+  const insert = await categoryModel.addCategory(body);
+  
+  res.status(insert.code).json(insert.body);
 });
 
 router.post('/update', catagoryValidaton.update, async (req, res) => {
