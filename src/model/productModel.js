@@ -47,6 +47,7 @@ const addProduct = async (body) => {
         category_id: body.category_id,
         user_inp: body.user_inp,
         image: body.image,
+        price: body.price,
         created_at : new Date()
     }
 
@@ -122,6 +123,47 @@ const getProduct = async (body) => {
     }
 }
 
+const getProductMulti = async (body) => {
+    try {
+        const productId = body.product_list;
+        const query = await knex('products').select('*').whereIn('id', productId).whereNull('deleted_at');
+        let response = {};
+
+        if(query){
+            response = {
+                code : 200,
+                body : {
+                    status : true,
+                    msg : null,
+                    data : query
+                }
+            }
+        } else {
+            response = {
+                code : 404,
+                body : {
+                    status : false,
+                    msg : 'data not found',
+                    data : null
+                }
+            }
+        }
+        return response;
+        
+    } catch (error) {
+        console.log(error);
+        const response = {
+            code : 500,
+            body : {
+                status : false,
+                msg : 'there is something wrong!',
+                data : null
+            }
+        }
+        return response;
+    }
+}
+
 const updateProduct = async (body) => {
     const cekProduct = await getProduct(body);
 
@@ -142,6 +184,7 @@ const updateProduct = async (body) => {
         name : body.product_name,
         category_id : body.category_id,
         image: body.image,
+        price: body.price,
         user_update : body.user_inp,
         updated_at : new Date()
 
@@ -235,5 +278,6 @@ module.exports = {
     addProduct,
     getProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    getProductMulti
 }
