@@ -2,8 +2,16 @@ const knex = require('../database/sql')
 const productModel = require('./productModel')
 
 const addTransaction = async (body) => {
+    const productList = body.product_list;
+    const product_id_list = productList.map(item => item.product_id);
+
+    const bodyGetProduct = {
+        product_list : product_id_list
+    }
+
     const getTotalTransToday = await totalTransaction();
-    const getProduct = await productModel.getProductMulti(body);
+    const getProduct = await productModel.getProductMulti(bodyGetProduct);
+
     let listProduct = [];
 
     let response = {};
@@ -30,7 +38,11 @@ const addTransaction = async (body) => {
         return response;
     } else {
         listProduct = getProduct.body.data;
-        totalPrice = listProduct.map(product => product.price).reduce((total, price) => total + price, 0);
+        const getPrice = listProduct.map(product => {
+            const getQty = productList.find(list => list.product_id == product.id);
+            return product.price * getQty.qty
+        })
+        totalPrice = getPrice.reduce((total, price) => total + price, 0);
     }
 
     const today = new Date();
@@ -54,10 +66,12 @@ const addTransaction = async (body) => {
             const transaction = await trx.insert(transactionInsert).into('transactions');
         
             const promises = listProduct.map(async element => {
+                const getQty = productList.find(list => list.product_id == element.id);
                 const insertDetailTrans = {
                     transaction_id: transaction[0],
                     product_id: element.id,
                     status: 1,
+                    qty: getQty.qty,
                     user_inp: 'USER'
                 };
         
@@ -118,7 +132,7 @@ const getTransaction = async (body) => {
 
     const getTransaction = await knex('transactions').select('*').where('id', id).whereNull('deleted_at').first();
     const getTransactionDetail = await knex('transactions_detail as a')
-    .select('b.name', 'b.price')
+    .select('b.name', 'a.qty', 'b.price', knex.raw('b.price * a.qty as total_price'))
     .join('products as b', 'b.id', 'a.product_id')
     .where('a.transaction_id', id);
 

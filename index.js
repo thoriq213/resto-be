@@ -1,11 +1,12 @@
 require('dotenv').config();
 const express = require('express');
+const bodyParser = require('body-parser');
 const app = express();
 const category = require('./src/router/category')
 const product = require('./src/router/product')
 const transaction = require('./src/router/transaction')
 
-app.use(express.json());
+app.use(bodyParser.json())
 
 app.use('/category', category);
 app.use('/product', product);

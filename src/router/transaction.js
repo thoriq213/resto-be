@@ -42,7 +42,6 @@ router.post('/detail', transactionValidaton.detail, async (req, res) => {
 
     const body = req.body;
     const getTranscation = await transactionModel.getTransaction(body);
-    console.log(getTranscation);
     res.status(getTranscation.code).json(getTranscation.body);
 })
 
