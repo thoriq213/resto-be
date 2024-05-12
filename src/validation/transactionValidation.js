@@ -7,11 +7,18 @@ const add = [
     body('product_list').notEmpty().withMessage('product_list tidak boleh kosong').isArray().withMessage('product_list harus array')
 ]
 
+const update = [
+    body('table_no').trim().notEmpty().withMessage('table_no tidak boleh kosong'),
+    body('invoice_no').trim().notEmpty().withMessage('invoice_no tidak boleh kosong'),
+    body('product_list').notEmpty().withMessage('product_list tidak boleh kosong').isArray().withMessage('product_list harus array')
+]
+
 const detail = [
     body('transaction_id').trim().notEmpty().withMessage('transaction_id tidak boleh kosong')
 ]
 
 module.exports = {
     add,
-    detail
+    detail,
+    update
 }

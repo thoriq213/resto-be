@@ -43,6 +43,22 @@ router.post('/detail', transactionValidaton.detail, async (req, res) => {
     const body = req.body;
     const getTranscation = await transactionModel.getTransaction(body);
     res.status(getTranscation.code).json(getTranscation.body);
-})
+});
+
+router.post('/update-transaction', transactionValidaton.update, async (req, res) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ 
+            status: false,
+            msg: errors.array(),
+            data: null
+        });
+    }
+
+    const body = req.body;
+    const updateTranscation = await transactionModel.editProduct(body);
+    res.status(updateTranscation.code).json(updateTranscation.body);
+});
 
 module.exports = router

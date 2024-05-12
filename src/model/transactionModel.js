@@ -19,7 +19,7 @@ const addTransaction = async (body) => {
     let numberInvoice = 0;
     let totalPrice = 0;
 
-    if(getTotalTransToday){
+    if(getTotalTransToday.total > 0){
         numberInvoice = parseInt(getTotalTransToday.total) + 1;
     } else {
         numberInvoice = 1;
@@ -108,8 +108,16 @@ const addTransaction = async (body) => {
     }
 }
 
-const addProduct = async (body) => {
-    const getProduct = productModel.getProductMulti(body);
+const editProduct = async (body) => {
+    const productList = body.product_list;
+    const product_id_list = productList.map(item => item.product_id);
+
+    const bodyGetProduct = {
+        product_list : product_id_list
+    }
+
+    const getProduct = await productModel.getProductMulti(bodyGetProduct);
+    let response = {};
 
     if(getProduct.body.data == null){
         const response = {
@@ -124,6 +132,118 @@ const addProduct = async (body) => {
         return response;
     }
 
+    const getTransaction = await getTransactionByInvoice(body);
+
+    if(getTransaction.body.data == null){
+        response = {
+            code : 404,
+            body : {
+                status : false,
+                msg : 'Data not found',
+                data : null
+            }
+        }
+
+        return response;
+    }
+
+    let listProduct = [];
+    let totalPrice = 0;
+
+    if(getProduct.body.data == null){
+        response = {
+            code : 404,
+            body : {
+                status : false,
+                msg : 'Data not found',
+                data : null
+            }
+        }
+
+        return response;
+    } else {
+        listProduct = getProduct.body.data;
+        const getPrice = listProduct.map(product => {
+            const getQty = productList.find(list => list.product_id == product.id);
+            return product.price * getQty.qty
+        })
+        totalPrice = getPrice.reduce((total, price) => total + price, 0);
+    }
+
+    const transactionDetail = getTransaction.body.data;
+    const detailTransaction = transactionDetail.detail;
+
+    const transactionUpdate = {
+        total_price: totalPrice,
+        user_update: body.user_update,
+        updated_at: new Date()
+    }
+
+    try {
+        const insertData = await knex.transaction(async (trx) => {
+            console.log(body.user_update);
+            const transaction = await trx('transactions').where('id', transactionDetail.id).update(transactionUpdate);
+        
+            const promises = listProduct.map(async element => {
+                const getQty = productList.find(list => list.product_id == element.id);
+                const getTransactionDetail = detailTransaction.find(list => list.product_id == element.id);
+                const detailTrans = {
+                    transaction_id: transactionDetail.id,
+                    product_id: element.id,
+                    status: 1,
+                    qty: getQty.qty,
+                    user_inp: body.user_update
+                };
+
+                if(getTransactionDetail){
+                    return await trx('transactions_detail').where('transaction_id', transactionDetail.id).where('product_id', element.id).update(detailTrans)
+                } else {
+                    return await trx.insert(detailTrans).into('transactions_detail');
+                }
+            });
+
+            const promisesCekDifferentProduct = detailTransaction.map(async element => {
+                const cekDifferent = productList.find(list => list.product_id == element.product_id);
+
+                if(!cekDifferent) {
+                    const deleteProduct = {
+                        status : 4
+                    }
+                    return trx('transactions_detail').where('transaction_id', transactionDetail.id).where('product_id', element.product_id).update(deleteProduct);
+                } else {
+                    return;
+                }
+            })
+        
+            await Promise.all([promises, promisesCekDifferentProduct]); // Tunggu semua operasi async selesai
+            return transaction;
+        });
+        
+        
+          const response = {
+            code: 200,
+            body: {
+              status: true,
+              msg: 'Data berhasil diubah',
+              data: null
+            }
+          };
+
+          return response;
+        
+    } catch (error) {
+        console.log(error);
+        const response = {
+            code : 500,
+            body : {
+                status : false,
+                msg : 'there is something wrong!',
+                data : null
+            }
+        }
+        return response;
+    }
+
 }
 
 const getTransaction = async (body) => {
@@ -132,9 +252,44 @@ const getTransaction = async (body) => {
 
     const getTransaction = await knex('transactions').select('*').where('id', id).whereNull('deleted_at').first();
     const getTransactionDetail = await knex('transactions_detail as a')
-    .select('b.name', 'a.qty', 'b.price', knex.raw('b.price * a.qty as total_price'))
+    .select('b.name', 'a.qty', 'b.price', 'a.transaction_id', knex.raw('b.price * a.qty as total_price'), 'a.product_id')
     .join('products as b', 'b.id', 'a.product_id')
-    .where('a.transaction_id', id);
+    .where('a.transaction_id', id)
+    .whereNot('status', 4);
+
+    if(getTransaction && getTransactionDetail){
+        getTransaction.detail = getTransactionDetail;
+        response = {
+            code : 200,
+            body : {
+                status : true,
+                msg : null,
+                data : getTransaction
+            }
+        }
+    } else {
+        response = {
+            code : 404,
+            body : {
+                status : false,
+                msg : 'data not found',
+                data : null
+            }
+        }
+    }
+    return response;
+}
+
+const getTransactionByInvoice = async (body) => {
+    const invoiceNo = body.invoice_no;
+    let response = {};
+
+    const getTransaction = await knex('transactions').select('*').where('invoice_no', invoiceNo).whereNull('deleted_at').first();
+    const getTransactionDetail = await knex('transactions_detail as a')
+    .select('b.name', 'a.qty', 'b.price', knex.raw('b.price * a.qty as total_price'), 'a.transaction_id', 'a.product_id')
+    .join('products as b', 'b.id', 'a.product_id')
+    .where('a.transaction_id', getTransaction.id)
+    .whereNot('status', 4);
 
     if(getTransaction && getTransactionDetail){
         getTransaction.detail = getTransactionDetail;
@@ -167,5 +322,6 @@ const totalTransaction = async () => {
 
 module.exports = {
     addTransaction,
-    getTransaction
+    getTransaction,
+    editProduct
 }
