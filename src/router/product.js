@@ -4,6 +4,7 @@ const productModel = require('../model/productModel');
 const categoryModel = require('../model/categoryModel');
 const productValidation = require('../validation/productValidation');
 const { validationResult, body } = require('express-validator');
+const fs = require('fs').promises;
 
 const multer = require('multer');
 
@@ -45,8 +46,8 @@ router.post('/add', upload.single('image'), productValidation.add, async (req, r
   }
   const body = req.body;
   if(req.file){
-    const {path} = req.file;
-    body.image = path;
+    const {filename} = req.file;
+    body.image = filename;
   } else {
     body.image = null;
   }
@@ -82,8 +83,8 @@ router.post('/update', upload.single('image'), productValidation.update, async (
 
   const body = req.body;
   if(req.file){
-    const {path} = req.file;
-    body.image = path;
+    const {filename} = req.file;
+    body.image = filename;
   } else {
     body.image = null;
   }
@@ -140,6 +141,20 @@ router.post('/detail', productValidation.detail, async (req, res) => {
   const detailProduct = await productModel.getProduct(body);
   res.status(detailProduct.code).json(detailProduct.body);
 });
+
+router.get('/image/:fileName', async(req, res) => {
+  try {
+    const imageName = req.params.fileName;
+    const imagePath = `uploads/${imageName}`;
+
+    const image = await fs.readFile(imagePath);
+    res.writeHead(200, { 'Content-Type': 'image/jpg' });
+    res.end(image, 'binary');
+  } catch (error) {
+    console.error('Error sending image:', error);
+    res.status(500).send('Internal Server Error');
+  }
+})
 
 
 module.exports = router

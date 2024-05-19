@@ -6,6 +6,13 @@ const listProduct = async () => {
         const query = await knex('products').select('*').whereNull('deleted_at');
 
         if(query.length > 0){
+            const data = query.map(value => {
+                if(value.image){
+                    return value.image = `${process.env.BASE_URL}product/image/${value.image}`;
+                } else {
+                    return;
+                }
+            })
             response = {
                 code : 200,
                 body : {

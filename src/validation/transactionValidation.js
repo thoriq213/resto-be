@@ -14,11 +14,26 @@ const update = [
 ]
 
 const detail = [
-    body('transaction_id').trim().notEmpty().withMessage('transaction_id tidak boleh kosong')
+    body('invoice_no').trim().notEmpty().withMessage('invoice_no tidak boleh kosong')
+]
+
+const void_trans = [
+    body('invoice_no').trim().notEmpty().withMessage('invoice_no tidak boleh kosong')
+]
+
+const finish_cook = [
+    body('invoice_no').trim().notEmpty().withMessage('invoice_no tidak boleh kosong')
+]
+
+const paid = [
+    body('invoice_no').trim().notEmpty().withMessage('invoice_no tidak boleh kosong')
 ]
 
 module.exports = {
     add,
     detail,
-    update
+    update,
+    void_trans,
+    finish_cook,
+    paid
 }
