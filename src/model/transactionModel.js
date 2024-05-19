@@ -58,7 +58,7 @@ const addTransaction = async (body) => {
         customer_name: body.customer_name,
         customer_phone: body.customer_phone,
         total_price: totalPrice,
-        user_inp: 'USER',
+        user_inp: body.user_inp,
         created_at: new Date()
     }
 
@@ -73,7 +73,7 @@ const addTransaction = async (body) => {
                     product_id: element.id,
                     status: 1,
                     qty: getQty.qty,
-                    user_inp: 'USER'
+                    user_inp: body.user_inp
                 };
         
                 return trx.insert(insertDetailTrans).into('transactions_detail');

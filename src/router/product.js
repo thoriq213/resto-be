@@ -4,7 +4,7 @@ const productModel = require('../model/productModel');
 const categoryModel = require('../model/categoryModel');
 const productValidation = require('../validation/productValidation');
 const { validationResult, body } = require('express-validator');
-const fs = require('fs').promises;
+const jwt = require('jsonwebtoken');
 
 const multer = require('multer');
 
@@ -18,6 +18,26 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage: storage });
+
+let dataSession = {};
+
+router.use((req, res, next) => {
+  const token = req.header('Authorization');
+  if (!token) {
+    return res.status(401).json({
+      status : false,
+      msg : 'access denied',
+      data : null
+    });
+  }
+  try {
+    const verified = jwt.verify(token, process.env.SECRET_KEY);
+    dataSession = verified;
+    next();
+  } catch (error) {
+    res.status(400).send('Invalid token');
+  }
+})
 
 
 // Rute pertama (/)
@@ -45,6 +65,7 @@ router.post('/add', upload.single('image'), productValidation.add, async (req, r
     });
   }
   const body = req.body;
+  body.user_inp = dataSession.username;
   if(req.file){
     const {filename} = req.file;
     body.image = filename;
@@ -82,6 +103,7 @@ router.post('/update', upload.single('image'), productValidation.update, async (
   }
 
   const body = req.body;
+  body.user_inp = dataSession.username;
   if(req.file){
     const {filename} = req.file;
     body.image = filename;
@@ -120,6 +142,7 @@ router.post('/delete', productValidation.deleteData, async (req, res) => {
   }
 
   const body = req.body;
+  body.user_inp = dataSession.username;
 
   const deleteProduct = await productModel.deleteProduct(body);
   res.status(deleteProduct.code).json(deleteProduct.body);
@@ -141,20 +164,6 @@ router.post('/detail', productValidation.detail, async (req, res) => {
   const detailProduct = await productModel.getProduct(body);
   res.status(detailProduct.code).json(detailProduct.body);
 });
-
-router.get('/image/:fileName', async(req, res) => {
-  try {
-    const imageName = req.params.fileName;
-    const imagePath = `uploads/${imageName}`;
-
-    const image = await fs.readFile(imagePath);
-    res.writeHead(200, { 'Content-Type': 'image/jpg' });
-    res.end(image, 'binary');
-  } catch (error) {
-    console.error('Error sending image:', error);
-    res.status(500).send('Internal Server Error');
-  }
-})
 
 
 module.exports = router

@@ -1,18 +1,61 @@
 const knex = require('../database/sql')
+const bcrypt = require('bcrypt');
 
-const listProduct = async () => {
+const addUser = async (body) => {
+    const password = await bcrypt.hash(`${body.username}#_2024`, 10);
+    const dataInsert = {
+        username : body.username,
+        password : password,
+        role_id : body.role_id,
+        user_inp : body.user_inp,
+        created_at : new Date()
+    }
+
+    let response = {};
+
     try {
+        const insertData = await knex.transaction(async (trx) => {
+            const result = await trx.insert(dataInsert).into('users');
+            return result;
+          });
+        
+          response = {
+            code: 200,
+            body: {
+              status: true,
+              msg: 'Data berhasil disimpan',
+              data: null
+            }
+          };
 
-        const query = await knex('products').select('*').whereNull('deleted_at');
+          return response;
+        
+    } catch (error) {
+        console.log(error);
+        response = {
+            code : 500,
+            body : {
+                status : false,
+                msg : 'there is something wrong!',
+                data : null
+            }
+        }
+        return response;
+    }
+}
+
+const getRole = async (body) => {
+    try {
+        const query = await knex('roles')
+        .select('*')
+        .whereNull('deleted_at')
+        .modify((queryBuilder) => {
+            if(body.role_id){
+                queryBuilder.where('id', body.role_id);
+            }
+        });
 
         if(query.length > 0){
-            const data = query.map(value => {
-                if(value.image){
-                    return value.image = `${process.env.BASE_URL}image/${value.image}`;
-                } else {
-                    return;
-                }
-            })
             response = {
                 code : 200,
                 body : {
@@ -48,53 +91,13 @@ const listProduct = async () => {
     }
 }
 
-const addProduct = async (body) => {
-    const dataInsert = {
-        name: body.product_name,
-        category_id: body.category_id,
-        user_inp: body.user_inp,
-        image: body.image,
-        price: body.price,
-        created_at : new Date()
-    }
-
+const getUser = async (body) => {
     try {
-        const insertData = await knex.transaction(async (trx) => {
-            const result = await trx.insert(dataInsert).into('products');
-            return result;
-          });
-        
-          const response = {
-            code: 200,
-            body: {
-              status: true,
-              msg: 'Data berhasil disimpan',
-              data: null
-            }
-          };
-
-          return response;
-        
-    } catch (error) {
-        console.log(error);
-        const response = {
-            code : 500,
-            body : {
-                status : false,
-                msg : 'there is something wrong!',
-                data : null
-            }
-        }
-        return response;
-    }
-}
-
-const getProduct = async (body) => {
-    try {
-        const productId = body.product_id;
-        const query = await knex('products').select('*').where('id', productId).whereNull('deleted_at').first();
-        query.image = query.image ? `${process.env.BASE_URL}image/${query.image}` : query.image;
-        let response = {};
+        const query = await knex('users')
+        .select('*')
+        .whereNull('deleted_at')
+        .where('username', body.username)
+        .first();
 
         if(query){
             response = {
@@ -115,11 +118,12 @@ const getProduct = async (body) => {
                 }
             }
         }
+
         return response;
         
     } catch (error) {
         console.log(error);
-        const response = {
+        response = {
             code : 500,
             body : {
                 status : false,
@@ -131,13 +135,13 @@ const getProduct = async (body) => {
     }
 }
 
-const getProductMulti = async (body) => {
+const listUser = async () => {
     try {
-        const productId = body.product_list;
-        const query = await knex('products').select('*').whereIn('id', productId).whereNull('deleted_at');
-        let response = {};
+        const query = await knex('users')
+        .select('id', 'username', 'role_id', 'user_inp', 'created_at')
+        .whereNull('deleted_at');
 
-        if(query){
+        if(query.length > 0){
             response = {
                 code : 200,
                 body : {
@@ -156,11 +160,12 @@ const getProductMulti = async (body) => {
                 }
             }
         }
+
         return response;
         
     } catch (error) {
         console.log(error);
-        const response = {
+        response = {
             code : 500,
             body : {
                 status : false,
@@ -170,70 +175,13 @@ const getProductMulti = async (body) => {
         }
         return response;
     }
-}
+};
 
-const updateProduct = async (body) => {
-    const cekProduct = await getProduct(body);
-
-    if(cekProduct.body.data == null){
-        const response = {
-            code : 404,
-            body : {
-                status : false,
-                msg : 'Data not found',
-                data : null
-            }
-        }
-
-        return response;
-    }
-
-    const dataUpdate = {
-        name : body.product_name,
-        category_id : body.category_id,
-        image: body.image,
-        price: body.price,
-        user_update : body.user_inp,
-        updated_at : new Date()
-
-    }
-
-    try {
-        const insertData = await knex.transaction(async (trx) => {
-            const result = await trx('products').where('id', body.product_id).update(dataUpdate);
-            return result;
-          });
-        
-          const response = {
-            code: 200,
-            body: {
-              status: true,
-              msg: 'Data berhasil diubah',
-              data: null
-            }
-          };
-
-          return response;
-        
-    } catch (error) {
-        console.log(error);
-        const response = {
-            code : 500,
-            body : {
-                status : false,
-                msg : 'there is something wrong!',
-                data : null
-            }
-        }
-        return response;
-    }
-}
-
-const deleteProduct = async (body) => {
-    const cekProduct = await getProduct(body);
+const deleteUser = async (body) => {
+    const getData = await getUser(body);
     let response = {};
 
-    if(cekProduct.body.data == null){
+    if(getData.body.data == null){
         response = {
             code : 404,
             body : {
@@ -252,7 +200,7 @@ const deleteProduct = async (body) => {
 
     try {
         const deleteData = await knex.transaction(async (trx) => {
-            const result = await trx('products').where('id', body.product_id).update(dataDelete);
+            const result = await trx('users').where('username', body.username).update(dataDelete);
             return result;
           });
         
@@ -282,10 +230,9 @@ const deleteProduct = async (body) => {
 }
 
 module.exports = {
-    listProduct,
-    addProduct,
-    getProduct,
-    updateProduct,
-    deleteProduct,
-    getProductMulti
+    addUser,
+    getRole,
+    getUser,
+    listUser,
+    deleteUser
 }
