@@ -49,6 +49,32 @@ router.post('/login', authValidation.login, async (req, res) => {
     res.status(200).json({token});
 });
 
+router.post('/regenerate_token', authValidation.regenrate_token, async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ 
+            status: false,
+            msg: errors.array(),
+            data: null
+        });
+    }
+
+    const body = req.body;
+    const getData = await userModel.getUser(body);
+    if(getData.body.data == null){
+        return res.status(400).json({
+            status : false,
+            msg: 'username tidak ditemukan',
+            data: null
+        })
+    }
+
+    const userData = getData.body.data;
+
+    const token = jwt.sign({username: userData.username, role_id: userData.role_id}, process.env.SECRET_KEY, {expiresIn: '1h'});
+    res.status(200).json({token});
+});
+
 router.post('/login_guest', authValidation.login_guest, async(req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
