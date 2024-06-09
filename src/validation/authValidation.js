@@ -6,6 +6,10 @@ const login = [
     body('password').trim().notEmpty().withMessage('role_id tidak boleh kosong')
 ];
 
+const regenrate_token = [
+    body('username').trim().notEmpty().withMessage('username tidak boleh kosong')
+];
+
 const login_guest = [
     body('name').trim().notEmpty().withMessage('name tidak boleh kosong'),
     body('phone').trim().notEmpty().withMessage('phone tidak boleh kosong'),
@@ -14,5 +18,6 @@ const login_guest = [
 
 module.exports = {
     login,
-    login_guest
+    login_guest,
+    regenrate_token
 }
