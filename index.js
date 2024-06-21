@@ -8,7 +8,9 @@ const transaction = require('./src/router/transaction')
 const user = require('./src/router/user')
 const auth = require('./src/router/auth')
 const image = require('./src/router/image')
+const cors = require('cors')
 
+app.use(cors());
 app.use(bodyParser.json())
 
 app.use('/category', category);
