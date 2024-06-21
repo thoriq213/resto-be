@@ -1,12 +1,18 @@
 const knex = require('../database/sql')
 
-const listProduct = async () => {
+const listProduct = async (categoryId) => {
     try {
 
-        const query = await knex('products').select('*').whereNull('deleted_at');
+        const query = knex('products').select('*').whereNull('deleted_at');
 
-        if(query.length > 0){
-            const data = query.map(value => {
+        if(categoryId != 0){
+            query.where('category_id', categoryId);
+        }
+
+        const result = await query;
+
+        if(result.length > 0){
+            const data = result.map(value => {
                 if(value.image){
                     return value.image = `${process.env.BASE_URL}image/${value.image}`;
                 } else {
@@ -18,7 +24,7 @@ const listProduct = async () => {
                 body : {
                     status : true,
                     msg : null,
-                    data : query
+                    data : result
                 }
             }
         } else {

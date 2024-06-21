@@ -53,8 +53,9 @@ router.get('/', (req, res) => {
   });
 });
 
-router.get('/list', async (req, res) => {
-  const getProduct = await productModel.listProduct();
+router.get('/list/:category', async (req, res) => {
+  const categoryId = req.params.category;
+  const getProduct = await productModel.listProduct(categoryId);
   res.status(getProduct.code).json(getProduct.body);
 });
 
