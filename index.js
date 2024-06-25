@@ -13,7 +13,7 @@ const cors = require('cors')
 app.use(cors());
 app.use(bodyParser.json())
 
-app.get('/', (req, res) => res.send('hallo dunia'))
+app.get('/', (req, res) => res.send('hallo'))
 app.use('/category', category);
 app.use('/product', product);
 app.use('/transaction', transaction);
