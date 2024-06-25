@@ -73,7 +73,7 @@ router.post('/update', catagoryValidaton.update, async (req, res) => {
 
   const body = req.body;
   body.user_inp = dataSession.username
-  // console.log(body);
+  console.log(body);
   const insert = await categoryModel.editCategory(body);
 
   res.status(insert.code).json(insert.body);
